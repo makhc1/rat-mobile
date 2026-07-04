@@ -1,4 +1,4 @@
-﻿package com.rat.mobile;
+package com.rat.mobile;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;

