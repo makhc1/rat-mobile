@@ -5,13 +5,10 @@ workflows:
     environment:
       vars:
         PACKAGE_NAME: "com.rat.mobile"
-        JAVA_HOME: "/usr/lib/jvm/java-8-openjdk-amd64"
+        GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx2048m --add-modules java.xml.bind --add-exports java.xml.bind/javax.xml.bind=ALL-UNNAMED"
     scripts:
-      - name: Build Android APK with Java 8
+      - name: Build APK
         script: |
-          export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
-          export PATH=$JAVA_HOME/bin:$PATH
-          java -version
           cd app
           ../gradlew assembleDebug
     artifacts:
