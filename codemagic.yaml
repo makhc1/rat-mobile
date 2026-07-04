@@ -5,11 +5,10 @@ workflows:
     environment:
       vars:
         PACKAGE_NAME: "com.rat.mobile"
-        GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx2048m --add-modules java.xml.bind --add-exports java.xml.bind/javax.xml.bind=ALL-UNNAMED"
     scripts:
       - name: Build APK
         script: |
           cd app
-          ../gradlew assembleDebug
+          gradle assembleDebug
     artifacts:
       - app/build/outputs/apk/**/*.apk
