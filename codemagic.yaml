@@ -1,0 +1,28 @@
+workflows:
+  android-build:
+    name: Android Build
+    max_build_duration: 30
+    environment:
+      groups:
+        - keystore_credentials
+      vars:
+        PACKAGE_NAME: "com.rat.mobile"
+    scripts:
+      - name: Setup Android SDK
+        script: |
+          echo "Setting up Android SDK..."
+          export ANDROID_SDK_ROOT=/usr/local/share/android-sdk
+          export PATH=$PATH:$ANDROID_SDK_ROOT/tools/bin
+          export PATH=$PATH:$ANDROID_SDK_ROOT/platform-tools
+          sdkmanager "platforms;android-33" "build-tools;33.0.0"
+      - name: Build Android APK
+        script: |
+          echo "Building APK..."
+          cd app
+          ../gradlew assembleDebug
+    artifacts:
+      - app/build/outputs/apk/**/*.apk
+    publishing:
+      email:
+        recipients:
+          - ahmadkhasimiri@gmail.com
