@@ -1,0 +1,30 @@
+﻿apply plugin: 'com.android.application'
+
+android {
+    compileSdk 33
+
+    defaultConfig {
+        applicationId "com.rat.mobile"
+        minSdk 21
+        targetSdk 33
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'io.socket:socket.io-client:2.0.1'
+}

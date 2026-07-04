@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:background="#0a0a0a">
+
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:text="🔴 RAT MOBILE" android:textSize="28sp"
+        android:textColor="#00ff41" android:fontFamily="monospace"/>
+
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:text="System is running" android:textColor="#aaaaaa" android:textSize="16sp"/>
+
+    <Button android:id="@+id/btnStatus"
+        android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:layout_marginTop="30dp" android:background="#00ff41"
+        android:textColor="#000000" android:text="ACTIVE"
+        android:padding="20dp" android:textSize="16sp"/>
+
+</LinearLayout>
